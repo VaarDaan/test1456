@@ -2,54 +2,39 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   LogOut,
   Package,
-  FileText,
   Settings,
   Plus,
   Trash2,
   Edit,
-  Save,
-  X,
-  Upload,
   Moon,
   Sun,
+  BarChart3,
+  Bot,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { ProductForm } from "@/components/admin/ProductForm";
+import { SettingsPanel } from "@/components/admin/SettingsPanel";
+import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
+import { AIAssistant } from "@/components/admin/AIAssistant";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
 
-const categories = [
-  { value: "interior", label: "Interior" },
-  { value: "exterior", label: "Exterior" },
-  { value: "furniture", label: "Furniture" },
-  { value: "premium", label: "Premium" },
-] as const;
-
-type CategoryValue = typeof categories[number]["value"];
+type TabType = "products" | "settings" | "analytics" | "ai";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDark, setIsDark] = useState(false);
-  const [activeTab, setActiveTab] = useState<"products" | "settings">("products");
+  const [activeTab, setActiveTab] = useState<TabType>("products");
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [newProduct, setNewProduct] = useState<Partial<ProductInsert>>({
-    name: "",
-    description: "",
-    category: "furniture",
-    price: 0,
-    is_active: true,
-    is_featured: false,
-  });
 
   useEffect(() => {
     const prefersDark = document.documentElement.classList.contains("dark");
@@ -112,14 +97,6 @@ const AdminDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       toast({ title: "Product added successfully!" });
       setIsAddingProduct(false);
-      setNewProduct({
-        name: "",
-        description: "",
-        category: "furniture",
-        price: 0,
-        is_active: true,
-        is_featured: false,
-      });
     },
     onError: () => {
       toast({ title: "Failed to add product", variant: "destructive" });
@@ -168,17 +145,12 @@ const AdminDashboard = () => {
     navigate("/admin");
   };
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.category) {
-      toast({ title: "Please fill in required fields", variant: "destructive" });
-      return;
+  const handleSaveProduct = (product: ProductInsert | Product) => {
+    if ("id" in product) {
+      updateProductMutation.mutate(product as Product);
+    } else {
+      addProductMutation.mutate(product as ProductInsert);
     }
-    addProductMutation.mutate(newProduct as ProductInsert);
-  };
-
-  const handleUpdateProduct = () => {
-    if (!editingProduct) return;
-    updateProductMutation.mutate(editingProduct);
   };
 
   return (
@@ -223,6 +195,20 @@ const AdminDashboard = () => {
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Button>
+          <Button
+            variant={activeTab === "analytics" ? "default" : "outline"}
+            onClick={() => setActiveTab("analytics")}
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Analytics
+          </Button>
+          <Button
+            variant={activeTab === "ai" ? "default" : "outline"}
+            onClick={() => setActiveTab("ai")}
+          >
+            <Bot className="w-4 h-4 mr-2" />
+            AI Assistant
+          </Button>
         </div>
 
         {/* Products Tab */}
@@ -230,7 +216,10 @@ const AdminDashboard = () => {
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-display font-bold">Products</h2>
-              <Button variant="gold" onClick={() => setIsAddingProduct(true)}>
+              <Button variant="gold" onClick={() => {
+                setIsAddingProduct(true);
+                setEditingProduct(null);
+              }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Product
               </Button>
@@ -238,96 +227,12 @@ const AdminDashboard = () => {
 
             {/* Add Product Form */}
             {isAddingProduct && (
-              <div className="glass-card p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Add New Product</h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsAddingProduct(false)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    placeholder="Product Name"
-                    value={newProduct.name}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, name: e.target.value })
-                    }
-                  />
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={newProduct.category}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        category: e.target.value as CategoryValue,
-                      })
-                    }
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    type="number"
-                    placeholder="Price"
-                    value={newProduct.price || ""}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        price: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
-                  <Input
-                    placeholder="Image URL"
-                    value={newProduct.image_url || ""}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, image_url: e.target.value })
-                    }
-                  />
-                  <Textarea
-                    placeholder="Description"
-                    className="md:col-span-2"
-                    value={newProduct.description || ""}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, description: e.target.value })
-                    }
-                  />
-                  <div className="md:col-span-2 flex gap-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={newProduct.is_active}
-                        onChange={(e) =>
-                          setNewProduct({ ...newProduct, is_active: e.target.checked })
-                        }
-                      />
-                      Active
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={newProduct.is_featured}
-                        onChange={(e) =>
-                          setNewProduct({ ...newProduct, is_featured: e.target.checked })
-                        }
-                      />
-                      Featured
-                    </label>
-                  </div>
-                </div>
-                <div className="flex justify-end mt-4">
-                  <Button variant="gold" onClick={handleAddProduct}>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Product
-                  </Button>
-                </div>
+              <div className="mb-6">
+                <ProductForm
+                  onSave={handleSaveProduct}
+                  onCancel={() => setIsAddingProduct(false)}
+                  isLoading={addProductMutation.isPending}
+                />
               </div>
             )}
 
@@ -364,8 +269,8 @@ const AdminDashboard = () => {
                       <span
                         className={`text-xs px-2 py-1 rounded ${
                           product.is_active
-                            ? "bg-green-500/20 text-green-600"
-                            : "bg-red-500/20 text-red-600"
+                            ? "bg-primary/20 text-primary"
+                            : "bg-destructive/20 text-destructive"
                         }`}
                       >
                         {product.is_active ? "Active" : "Inactive"}
@@ -373,7 +278,10 @@ const AdminDashboard = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setEditingProduct(product)}
+                        onClick={() => {
+                          setEditingProduct(product);
+                          setIsAddingProduct(false);
+                        }}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -393,110 +301,13 @@ const AdminDashboard = () => {
             {/* Edit Modal */}
             {editingProduct && (
               <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="glass-card p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Edit Product</h3>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEditingProduct(null)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="grid gap-4">
-                    <Input
-                      placeholder="Product Name"
-                      value={editingProduct.name}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, name: e.target.value })
-                      }
-                    />
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={editingProduct.category}
-                      onChange={(e) =>
-                        setEditingProduct({
-                          ...editingProduct,
-                          category: e.target.value as CategoryValue,
-                        })
-                      }
-                    >
-                      {categories.map((cat) => (
-                        <option key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </option>
-                      ))}
-                    </select>
-                    <Input
-                      type="number"
-                      placeholder="Price"
-                      value={editingProduct.price || ""}
-                      onChange={(e) =>
-                        setEditingProduct({
-                          ...editingProduct,
-                          price: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                    />
-                    <Input
-                      placeholder="Image URL"
-                      value={editingProduct.image_url || ""}
-                      onChange={(e) =>
-                        setEditingProduct({
-                          ...editingProduct,
-                          image_url: e.target.value,
-                        })
-                      }
-                    />
-                    <Textarea
-                      placeholder="Description"
-                      value={editingProduct.description || ""}
-                      onChange={(e) =>
-                        setEditingProduct({
-                          ...editingProduct,
-                          description: e.target.value,
-                        })
-                      }
-                    />
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={editingProduct.is_active ?? true}
-                          onChange={(e) =>
-                            setEditingProduct({
-                              ...editingProduct,
-                              is_active: e.target.checked,
-                            })
-                          }
-                        />
-                        Active
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={editingProduct.is_featured ?? false}
-                          onChange={(e) =>
-                            setEditingProduct({
-                              ...editingProduct,
-                              is_featured: e.target.checked,
-                            })
-                          }
-                        />
-                        Featured
-                      </label>
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-4 gap-2">
-                    <Button variant="outline" onClick={() => setEditingProduct(null)}>
-                      Cancel
-                    </Button>
-                    <Button variant="gold" onClick={handleUpdateProduct}>
-                      <Save className="w-4 h-4 mr-2" />
-                      Update Product
-                    </Button>
-                  </div>
+                <div className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                  <ProductForm
+                    product={editingProduct}
+                    onSave={handleSaveProduct}
+                    onCancel={() => setEditingProduct(null)}
+                    isLoading={updateProductMutation.isPending}
+                  />
                 </div>
               </div>
             )}
@@ -504,17 +315,13 @@ const AdminDashboard = () => {
         )}
 
         {/* Settings Tab */}
-        {activeTab === "settings" && (
-          <div>
-            <h2 className="text-2xl font-display font-bold mb-6">Site Settings</h2>
-            <div className="glass-card p-6">
-              <p className="text-muted-foreground">
-                Settings management coming soon. You'll be able to update catalogue URL,
-                offer banners, and SEO settings here.
-              </p>
-            </div>
-          </div>
-        )}
+        {activeTab === "settings" && <SettingsPanel />}
+
+        {/* Analytics Tab */}
+        {activeTab === "analytics" && <AnalyticsPanel />}
+
+        {/* AI Assistant Tab */}
+        {activeTab === "ai" && <AIAssistant />}
       </div>
     </div>
   );
