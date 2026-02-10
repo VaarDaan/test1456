@@ -4,42 +4,6 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-// Fallback products for when database is empty
-const fallbackProducts = [
-  {
-    id: "1",
-    name: "Modern Steel Dining Table",
-    description: "Elegant steel frame with tempered glass top",
-    category: "furniture",
-    image_url: "https://images.unsplash.com/photo-1617806118233-18e1de247200?w=500&h=500&fit=crop",
-    price: 45000,
-  },
-  {
-    id: "2",
-    name: "Premium Gate Design",
-    description: "Custom steel gate with intricate patterns",
-    category: "exterior",
-    image_url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500&h=500&fit=crop",
-    price: 85000,
-  },
-  {
-    id: "3",
-    name: "Steel Railing System",
-    description: "Modern staircase railing with glass panels",
-    category: "interior",
-    image_url: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=500&h=500&fit=crop",
-    price: 35000,
-  },
-  {
-    id: "4",
-    name: "Executive Office Chair",
-    description: "Premium steel and leather executive chair",
-    category: "premium",
-    image_url: "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=500&h=500&fit=crop",
-    price: 28000,
-  },
-];
-
 export function FeaturedProducts() {
   const { data: products } = useQuery({
     queryKey: ["featured-products"],
@@ -50,13 +14,12 @@ export function FeaturedProducts() {
         .eq("is_featured", true)
         .eq("is_active", true)
         .limit(4);
-      
       if (error) throw error;
       return data;
     },
   });
 
-  const displayProducts = products?.length ? products : fallbackProducts;
+  if (!products?.length) return null;
 
   const getWhatsAppUrl = (productName: string) => {
     return `https://wa.me/919382176969?text=${encodeURIComponent(
@@ -84,50 +47,43 @@ export function FeaturedProducts() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {displayProducts.map((product, index) => (
+        {products.map((product, index) => (
           <div
             key={product.id}
             className={`group glass-card hover-lift overflow-hidden fade-up fade-up-delay-${index + 1}`}
           >
-            <div className="aspect-square overflow-hidden relative">
-              <img
-                src={product.image_url || "/placeholder.svg"}
-                alt={product.name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-                <Button
-                  variant="glass"
-                  size="sm"
-                  asChild
-                  className="translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
-                >
-                  <a
-                    href={getWhatsAppUrl(product.name)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-1" />
-                    Enquire
-                  </a>
-                </Button>
+            <Link to={`/products/${product.id}`}>
+              <div className="aspect-square overflow-hidden relative">
+                <img
+                  src={product.image_url || "/placeholder.svg"}
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
               </div>
-            </div>
+            </Link>
             <div className="p-5">
               <span className="text-xs font-medium uppercase tracking-wider text-primary">
                 {product.category}
               </span>
-              <h3 className="text-base font-semibold mt-1 mb-2 line-clamp-1">
-                {product.name}
-              </h3>
+              <Link to={`/products/${product.id}`}>
+                <h3 className="text-base font-semibold mt-1 mb-2 line-clamp-1 hover:text-primary transition-colors">
+                  {product.name}
+                </h3>
+              </Link>
               <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                 {product.description}
               </p>
               {product.price && (
-                <p className="text-lg font-bold gold-text">
+                <p className="text-lg font-bold gold-text mb-3">
                   ₹{product.price.toLocaleString("en-IN")}
                 </p>
               )}
+              <Button variant="outline" size="sm" asChild className="w-full">
+                <a href={getWhatsAppUrl(product.name)} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="w-4 h-4 mr-1" />
+                  Enquire
+                </a>
+              </Button>
             </div>
           </div>
         ))}
