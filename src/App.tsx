@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
+import ProductDetail from "./pages/ProductDetail";
 import Contact from "./pages/Contact";
 import Catalogue from "./pages/Catalogue";
 import Blog from "./pages/Blog";
@@ -22,6 +23,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/products" element={<Products />} />
+      <Route path="/products/:id" element={<ProductDetail />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/catalogue" element={<Catalogue />} />
       <Route path="/blog" element={<Blog />} />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -12,74 +12,6 @@ const categories = [
   { value: "exterior", label: "Exterior" },
   { value: "furniture", label: "Furniture" },
   { value: "premium", label: "Premium Corner" },
-];
-
-// Fallback products
-const fallbackProducts = [
-  {
-    id: "1",
-    name: "Modern Steel Dining Table",
-    description: "Elegant steel frame with tempered glass top. Perfect for contemporary dining spaces.",
-    category: "furniture",
-    image_url: "https://images.unsplash.com/photo-1617806118233-18e1de247200?w=500&h=500&fit=crop",
-    price: 45000,
-  },
-  {
-    id: "2",
-    name: "Premium Gate Design",
-    description: "Custom steel gate with intricate patterns and durable finish.",
-    category: "exterior",
-    image_url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500&h=500&fit=crop",
-    price: 85000,
-  },
-  {
-    id: "3",
-    name: "Steel Railing System",
-    description: "Modern staircase railing with glass panels for a sleek look.",
-    category: "interior",
-    image_url: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=500&h=500&fit=crop",
-    price: 35000,
-  },
-  {
-    id: "4",
-    name: "Executive Office Chair",
-    description: "Premium steel and leather executive chair with ergonomic design.",
-    category: "premium",
-    image_url: "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=500&h=500&fit=crop",
-    price: 28000,
-  },
-  {
-    id: "5",
-    name: "Steel Bookshelf Unit",
-    description: "Industrial style bookshelf with wooden shelves and steel frame.",
-    category: "furniture",
-    image_url: "https://images.unsplash.com/photo-1594620302200-9a762244a156?w=500&h=500&fit=crop",
-    price: 32000,
-  },
-  {
-    id: "6",
-    name: "Decorative Window Grills",
-    description: "Artistic window grills with modern geometric patterns.",
-    category: "exterior",
-    image_url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=500&h=500&fit=crop",
-    price: 18000,
-  },
-  {
-    id: "7",
-    name: "Steel Console Table",
-    description: "Minimalist console table with marble top and gold-finished legs.",
-    category: "interior",
-    image_url: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=500&h=500&fit=crop",
-    price: 42000,
-  },
-  {
-    id: "8",
-    name: "Luxury Outdoor Furniture Set",
-    description: "Complete outdoor seating with weather-resistant steel construction.",
-    category: "premium",
-    image_url: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=500&h=500&fit=crop",
-    price: 125000,
-  },
 ];
 
 const Products = () => {
@@ -95,8 +27,8 @@ const Products = () => {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
-      if (activeCategory !== "all" && (activeCategory === "interior" || activeCategory === "exterior" || activeCategory === "furniture" || activeCategory === "premium")) {
-        query = query.eq("category", activeCategory);
+      if (activeCategory !== "all" && ["interior", "exterior", "furniture", "premium"].includes(activeCategory)) {
+        query = query.eq("category", activeCategory as any);
       }
 
       const { data, error } = await query;
@@ -104,12 +36,6 @@ const Products = () => {
       return data;
     },
   });
-
-  const displayProducts = products?.length
-    ? products
-    : fallbackProducts.filter(
-        (p) => activeCategory === "all" || p.category === activeCategory
-      );
 
   const getWhatsAppUrl = (productName: string) => {
     return `https://wa.me/919382176969?text=${encodeURIComponent(
@@ -127,7 +53,6 @@ const Products = () => {
 
   return (
     <Layout>
-      {/* Hero */}
       <section className="bg-muted/30 py-16 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
@@ -144,9 +69,7 @@ const Products = () => {
         </div>
       </section>
 
-      {/* Filters & Products */}
       <section className="section-container">
-        {/* Category Filter */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
           <Filter className="w-5 h-5 text-muted-foreground flex-shrink-0" />
           {categories.map((category) => (
@@ -162,7 +85,6 @@ const Products = () => {
           ))}
         </div>
 
-        {/* Products Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[...Array(8)].map((_, i) => (
@@ -176,61 +98,49 @@ const Products = () => {
               </div>
             ))}
           </div>
+        ) : !products?.length ? (
+          <div className="text-center py-16">
+            <p className="text-muted-foreground">No products found. Check back soon!</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {displayProducts.map((product) => (
-              <div
-                key={product.id}
-                className="group glass-card hover-lift overflow-hidden"
-              >
-                <div className="aspect-square overflow-hidden relative">
-                  <img
-                    src={product.image_url || "/placeholder.svg"}
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-                    <Button
-                      variant="glass"
-                      size="sm"
-                      asChild
-                      className="translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
-                    >
-                      <a
-                        href={getWhatsAppUrl(product.name)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <MessageCircle className="w-4 h-4 mr-1" />
-                        WhatsApp Enquiry
-                      </a>
-                    </Button>
+            {products.map((product) => (
+              <div key={product.id} className="group glass-card hover-lift overflow-hidden">
+                <Link to={`/products/${product.id}`}>
+                  <div className="aspect-square overflow-hidden relative">
+                    <img
+                      src={product.image_url || "/placeholder.svg"}
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
                   </div>
-                </div>
+                </Link>
                 <div className="p-5">
                   <span className="text-xs font-medium uppercase tracking-wider text-primary">
                     {product.category}
                   </span>
-                  <h3 className="text-base font-semibold mt-1 mb-2 line-clamp-1">
-                    {product.name}
-                  </h3>
+                  <Link to={`/products/${product.id}`}>
+                    <h3 className="text-base font-semibold mt-1 mb-2 line-clamp-1 hover:text-primary transition-colors">
+                      {product.name}
+                    </h3>
+                  </Link>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                     {product.description}
                   </p>
                   {product.price && (
-                    <p className="text-lg font-bold gold-text">
+                    <p className="text-lg font-bold gold-text mb-3">
                       ₹{product.price.toLocaleString("en-IN")}
                     </p>
                   )}
+                  <Button variant="outline" size="sm" asChild className="w-full">
+                    <a href={getWhatsAppUrl(product.name)} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle className="w-4 h-4 mr-1" />
+                      WhatsApp Enquiry
+                    </a>
+                  </Button>
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {displayProducts.length === 0 && !isLoading && (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground">No products found in this category.</p>
           </div>
         )}
       </section>
